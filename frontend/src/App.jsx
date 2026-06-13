@@ -8,7 +8,7 @@ import {
   ThumbsUp, ThumbsDown, AlertCircle, CheckCircle2
 } from "lucide-react";
 
-const API = "/api";
+const API = "https://sentiment-dashboard-cox0.onrender.com";
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 const scoreColor = (score) =>
