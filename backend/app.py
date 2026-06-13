@@ -1,9 +1,9 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from transformers import pipeline
+from huggingface_hub import InferenceClient
 from collections import deque
-import time, torch
+import time, os
 
 HISTORY_MAX = 100
 
@@ -19,17 +19,14 @@ app.add_middleware(
 # ── Load model ────────────────────────────────────────────────────────────────
 MODEL_ID = "RahulBror/sentiment-dashboard-model"
 
-device = 0 if torch.cuda.is_available() else -1
-print(f"Loading model {MODEL_ID} on {'GPU' if device == 0 else 'CPU'}...")
+HF_TOKEN = os.getenv("HF_TOKEN")
 
-clf = pipeline(
-    "text-classification",
+client = InferenceClient(
     model=MODEL_ID,
-    tokenizer=MODEL_ID,
-    device=device,
-    truncation=True,
-    max_length=256,
+    token=HF_TOKEN
 )
+
+print(f"Using Hugging Face Inference API for {MODEL_ID}")
 history: deque = deque(maxlen=HISTORY_MAX)
 
 # ── Schemas ───────────────────────────────────────────────────────────────────
@@ -53,16 +50,27 @@ def make_record(text: str, result: dict) -> dict:
         "timestamp": time.time(),
     }
 
+
+def predict_sentiment(text):
+    result = client.text_classification(text)
+
+    return {
+        "label": result.label.lower(),
+        "score": result.score
+    }
 # ── Routes ────────────────────────────────────────────────────────────────────
 @app.get("/health")
 def health():
-    return {"status": "ok", "device": "GPU" if device == 0 else "CPU"}
+    return {
+        "status": "ok",
+        "model": MODEL_ID
+    }
 
 @app.post("/analyze")
 def analyze(body: TextInput):
     if not body.text.strip():
         raise HTTPException(400, "Text cannot be empty.")
-    result = clf(body.text)[0]
+    result = predict_sentiment(body.text)
     record = make_record(body.text, result)
     history.appendleft(record)
     return record
@@ -73,7 +81,7 @@ def analyze_batch(body: BatchInput):
         raise HTTPException(400, "texts list is empty.")
     if len(body.texts) > 20:
         raise HTTPException(400, "Max 20 texts per batch.")
-    results = clf(body.texts)
+    results = [predict_sentiment(text) for text in body.texts]   
     records = [make_record(t, r) for t, r in zip(body.texts, results)]
     for r in reversed(records):
         history.appendleft(r)
