@@ -3,9 +3,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from transformers import pipeline
 from collections import deque
-import time, torch, os
+import time, torch
 
-MODEL_DIR = "./model"
 HISTORY_MAX = 100
 
 app = FastAPI(title="Sentiment Analysis API")
@@ -18,21 +17,19 @@ app.add_middleware(
 )
 
 # ── Load model ────────────────────────────────────────────────────────────────
-device = 0 if torch.cuda.is_available() else -1
-print(f"Loading model from {MODEL_DIR} on {'GPU' if device == 0 else 'CPU'}...")
+MODEL_ID = "RahulBror/sentiment-dashboard-model"
 
-if not os.path.exists(MODEL_DIR):
-    raise RuntimeError("Model not found. Run `python train.py` first.")
+device = 0 if torch.cuda.is_available() else -1
+print(f"Loading model {MODEL_ID} on {'GPU' if device == 0 else 'CPU'}...")
 
 clf = pipeline(
     "text-classification",
-    model=MODEL_DIR,
-    tokenizer=MODEL_DIR,
+    model=MODEL_ID,
+    tokenizer=MODEL_ID,
     device=device,
     truncation=True,
     max_length=256,
 )
-
 history: deque = deque(maxlen=HISTORY_MAX)
 
 # ── Schemas ───────────────────────────────────────────────────────────────────

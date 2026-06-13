@@ -5,3 +5,6 @@ venv/
 backend/model/
 backend/__pycache__/
 frontend/dist/
+
+.DS_Store
+**/.DS_Store
