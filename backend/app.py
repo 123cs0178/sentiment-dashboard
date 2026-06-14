@@ -17,7 +17,7 @@ app.add_middleware(
 )
 
 # ── Load model ────────────────────────────────────────────────────────────────
-MODEL_ID = "cardiffnlp/twitter-roberta-base-sentiment-latest"
+MODEL_ID = "distilbert/distilbert-base-uncased-finetuned-sst-2-english"
 
 HF_TOKEN = os.getenv("HF_TOKEN")
 
@@ -49,17 +49,20 @@ def make_record(text: str, result: dict) -> dict:
         "timestamp": time.time(),
     }
 
-
 def predict_sentiment(text):
     result = client.text_classification(
-    text,
-    model=MODEL_ID,
-    provider="hf-inference"
+        text,
+        model="distilbert/distilbert-base-uncased-finetuned-sst-2-english"
     )
+
+    if isinstance(result, list):
+        result = result[0]
+
     return {
         "label": result.label.lower(),
         "score": result.score
     }
+
 # ── Routes ────────────────────────────────────────────────────────────────────
 @app.get("/health")
 def health():
