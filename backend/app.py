@@ -41,16 +41,35 @@ class BatchInput(BaseModel):
     texts: list[str]
 
 def make_record(text: str, result: dict) -> dict:
-    label = result["label"].lower()
+    label_raw = result["label"].lower()
     score = result["score"]
-    sentiment_score = score if "pos" in label else 1 - score
+    
+    # Handle all possible label formats:
+    # "positive", "POSITIVE", "LABEL_1", "pos", "1"
+    is_positive = (
+        "pos" in label_raw or 
+        label_raw == "label_1" or 
+        label_raw == "1"
+    )
+    
+    sentiment_score = score if is_positive else 1 - score
+    
     return {
         "text": text[:300],
-        "label": "positive" if "pos" in label else "negative",
+        "label": "positive" if is_positive else "negative",
         "confidence": round(score * 100, 2),
         "sentiment_score": round(sentiment_score * 100, 2),
         "timestamp": time.time(),
     }
+@app.get("/debug")
+def debug():
+    if not MODEL_LOADED:
+        return {"error": "model not loaded"}
+    try:
+        result = clf("I love this product")[0]
+        return {"raw_result": result, "model": MODEL_NAME}
+    except Exception as e:
+        return {"error": str(e)}
 
 @app.get("/health")
 def health():
