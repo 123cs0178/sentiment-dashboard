@@ -17,7 +17,7 @@ app.add_middleware(
 )
 
 # ── Load model ────────────────────────────────────────────────────────────────
-MODEL_ID = "distilbert-base-uncased-finetuned-sst-2-english"
+MODEL_ID = "cardiffnlp/twitter-roberta-base-sentiment-latest"
 
 HF_TOKEN = os.getenv("HF_TOKEN")
 
@@ -53,9 +53,9 @@ def make_record(text: str, result: dict) -> dict:
 def predict_sentiment(text):
     result = client.text_classification(
     text,
-    model=MODEL_ID
-    )	    
-
+    model=MODEL_ID,
+    provider="hf-inference"
+    )
     return {
         "label": result.label.lower(),
         "score": result.score
